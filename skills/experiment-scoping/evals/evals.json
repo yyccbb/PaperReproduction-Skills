@@ -1,0 +1,36 @@
+{
+  "skill_name": "experiment-scoping",
+  "evals": [
+    {
+      "id": 0,
+      "name": "mixup-single-script",
+      "prompt": "I'm in the cloned repo for the mixup paper (facebookresearch/mixup-cifar10) and I've pasted the paper pdf into the repo root as mixup_paper.pdf. Study the paper and the code and tell me exactly what to run to reproduce the paper's experiments — commands with hyperparameter flags, why you picked any non-obvious values, and what datasets or checkpoints I'd need.",
+      "expected_output": "A scoping report with at least one command against train.py whose flags all exist in its argparse (--lr, --alpha, --epoch, --decay, --model, --seed), mock-run downscaling of epochs noted with the paper-faithful value (200), justifications citing the paper (e.g. alpha=1 for CIFAR-10, lr schedule), CIFAR-10 listed as auto-downloaded by torchvision, no checkpoints needed.",
+      "files": ["fixtures/mixup-cifar10 (repo, with mixup_paper.pdf pasted at root)"],
+      "assertions": [
+        "Report gives at least one runnable command invoking train.py with explicit hyperparameter flags",
+        "Every flag used with train.py exists in its argparse (valid set: --lr, --resume/-r, --model, --name, --seed, --batch-size, --epoch, --no-augment, --decay, --alpha)",
+        "Correctly states CIFAR-10 must be manually placed at ~/data (train.py hardcodes download=False), and that no pretrained checkpoints are required",
+        "Identifies the legacy PyTorch 0.3 APIs (loss.data[0], volatile=True) as a blocker/risk for running on modern PyTorch",
+        "Justifies the mixup interpolation alpha value by citing the paper (paper uses alpha=1 for CIFAR-10)",
+        "Distinguishes a scaled-down mock/smoke run from the full paper run, stating the paper-faithful epoch count (200)"
+      ]
+    },
+    {
+      "id": 1,
+      "name": "lora-multi-experiment",
+      "prompt": "ok i cloned microsoft/LoRA and put the paper pdf in the repo (lora_paper.pdf). can you scope out what experiments from the paper i could actually reproduce with this code? for each one give me the command i'd run with the hyperparams, justify anything non-obvious, and list the datasets/checkpoints i need to grab.",
+      "expected_output": "A scoping report that identifies the GPT-2 E2E NLG experiment(s) under examples/NLG (and handles the examples/NLU experiments honestly), commands whose flags exist in the actual scripts' argparse (e.g. gpt2_ft.py flags: --lora_dim, --lora_alpha, --lr, --train_batch_size), justification citing paper appendix hyperparameters, GPT-2 checkpoint and E2E dataset listed as needed assets with sources, and honest notes on anything the repo cannot reproduce.",
+      "files": ["fixtures/LoRA (repo, with lora_paper.pdf pasted at root)"],
+      "assertions": [
+        "Identifies the GPT-2 E2E NLG fine-tuning experiment as reproducible and gives a command invoking src/gpt2_ft.py",
+        "Every flag in every proposed command (gpt2_ft.py, gpt2_beam.py, run_glue.py, etc.) exists in the corresponding script's actual argument definitions",
+        "Eval-path checkpoint semantics are correct: does not feed a LoRA-only checkpoint straight to gpt2_beam.py (whose load_weight fills missing keys with random init) — uses the final full state dict or merges LoRA weights first",
+        "Lists required assets: a pretrained GPT-2 checkpoint and the E2E dataset, referencing the repo's download_pretrained_checkpoints.sh / create_datasets.sh or an equivalent concrete source",
+        "Uses paper-consistent LoRA hyperparameters (lora_dim 4, lora_alpha 32 for GPT-2 E2E) with justification citing the paper",
+        "Scopes the NLU (RoBERTa/DeBERTa GLUE) experiments with hyperparameters matching the repo's per-task scripts, or explicitly justifies excluding them",
+        "Gives checkpoint size or parameter-count information usable for a downstream hardware feasibility check"
+      ]
+    }
+  ]
+}
