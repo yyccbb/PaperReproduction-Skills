@@ -98,9 +98,19 @@ not reproducing final numbers. So:
   size, dataset) — a mock run with fake hyperparameters validates nothing.
 - Scale down only duration-type knobs (epochs/steps, eval frequency, number of seeds) and
   say what the full-run value would be.
-- Never invent a flag. Every flag in the command must exist in the argparse/config you read
-  in step 2. If a needed knob has no flag, say so — that is a finding, not something to
-  paper over.
+- Never invent a flag. Every flag *you* add must exist in the argparse/config you read in
+  step 2. If a needed knob has no flag, say so — that is a finding, not something to paper
+  over.
+- Author-provided flags get the opposite treatment: when the README (or an author script)
+  gives a command, retain **all** of its flags by default, even ones the argparse doesn't
+  seem to accept. The authors presumably ran that command, so a flag that would fail to
+  parse today usually points to a code/README drift bug, not a flag to silently drop. If a
+  README flag looks like it would cause an immediate parsing error, grep the codebase for
+  where it is consumed before deciding:
+  - Used somewhere deeper in the code → keep the flag, and record the parsing error under
+    Notes/risks; stage 4 (code-fix) will repair the parser, and dropping the flag now would
+    silently change the experiment instead.
+  - Confirmed unused anywhere → only then remove it, and note the removal and the evidence.
 - Use paths as placeholders in an obvious, consistent form (`<DATA_DIR>/cifar10`,
   `<CKPT_DIR>/resnet50.pth`) so stage 2 can substitute real paths mechanically.
 
@@ -141,11 +151,15 @@ both the code default and uncontroversial):
 - resnet50 ImageNet-pretrained — from <URL or hub name> — expected at `<CKPT_DIR>/resnet50.pth`
 - (or "none — trains from scratch")
 
-**Notes / risks:** missing flags, paper-code discrepancies, anything ambiguous.
+**Notes / risks:** missing flags, README flags retained despite expected parsing errors
+(with where in the code they are consumed, for the code-fix stage), removed-as-unused
+flags with evidence, paper-code discrepancies, anything ambiguous.
 `````
 
 For checkpoints, include a rough size or parameter count when the paper/repo states one —
 stage 2 uses it for hardware feasibility checks.
+
+Save the output to ".paper-reproduction/experiment-scoping.md" placed directly under the repo root.
 
 ## Boundaries
 
