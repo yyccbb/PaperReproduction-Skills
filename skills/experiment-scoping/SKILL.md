@@ -1,12 +1,13 @@
 ---
 name: experiment-scoping
-description: First stage of a paper-reproduction pipeline, run from inside a cloned paper codebase that has the paper's PDF placed in it. Use whenever the task is to study the paper together with its code and decide which experiments to reproduce. For each experiment, produce one runnable command with hyperparameter flags, justification for non-obvious hyperparameter choices, and the datasets/checkpoints it needs. Do not use for downloading datasets/checkpoints, setting up environments, or executing and debugging runs.
+description: First stage of a paper-reproduction pipeline, run from inside a cloned paper codebase that has the paper's PDF placed in it. Use whenever the task is to study the paper together with its code and decide which experiments to reproduce. For each experiment, produce a runnable GPU-first mock-run command plus the full reproduction command(s) with hyperparameter flags, justification for non-obvious hyperparameter choices, and the datasets/checkpoints it needs. Do not use for downloading datasets/checkpoints, setting up environments, or executing and debugging runs.
 ---
 
 # experiment-scoping
 
-Turn a paper + codebase pair into a concrete, grounded experiment plan: one command per
-experiment, ready to be smoke-tested by later pipeline stages.
+Turn a paper + codebase pair into a concrete, grounded experiment plan: for each
+experiment, a mock-run command ready to be smoke-tested by later pipeline stages, plus the
+full-run command(s) that reproduce the paper's numbers.
 
 ## Position in the pipeline
 
@@ -89,15 +90,39 @@ the main results table, plus ablations only if the user asked for full coverage.
 paper has many dataset × model combinations, pick one representative combination per claim
 and say why. List what you deliberately left out.
 
-### 5. Write one mock-run command per experiment
+### 5. Write the commands: one mock run + the full reproduction runs per experiment
 
-Each command's purpose downstream is a *mock run*: proving the pipeline executes end-to-end,
-not reproducing final numbers. So:
+Each experiment gets two kinds of commands.
+
+**The mock-run command** proves the pipeline executes end-to-end, not that it reproduces
+final numbers. So:
 
 - Keep all scientifically meaningful hyperparameters paper-faithful (lr, batch size, model
   size, dataset) — a mock run with fake hyperparameters validates nothing.
 - Scale down only duration-type knobs (epochs/steps, eval frequency, number of seeds) and
   say what the full-run value would be.
+- Run on GPU whenever possible: if the code has a device flag or CUDA path, the mock must
+  exercise it (`--device gpu`, `--cuda`, etc.), because CUDA/torch compatibility failures
+  are precisely what the environment-setup and code-fix stages need to surface early — a
+  CPU mock that passes can still hide a broken GPU path that only explodes during the real
+  run. Fall back to CPU only when the code is genuinely CPU-only or has no GPU path, and
+  say so in Notes/risks.
+
+**The full-run command(s)** are what actually reproduces the paper's numbers once the mock
+passes. Present them as:
+
+- One exact, copy-paste-runnable *canonical* command for the experiment's headline setting
+  (the paper's flagship configuration), differing from the mock only in the duration knobs
+  and device where applicable.
+- If reproducing the full figure/table requires a sweep (multiple λ values, datasets,
+  seeds…), do **not** enumerate every command when the count is large, and do **not** give
+  a loose template with independent per-flag choices either — papers often couple
+  parameters (dataset A goes with T=4 and λ=0.01, dataset B with T=5 and λ=0.005), and a
+  free-choice template invites downstream stages to expand an invalid cross product.
+  Instead give the canonical command as a template plus a table of *valid parameter
+  tuples*, one row per run, so a later stage can expand it mechanically with zero
+  interpretation. When the total number of runs is small (roughly 8 or fewer), skip the
+  table and enumerate every exact command.
 - Never invent a flag. Every flag *you* add must exist in the argparse/config you read in
   step 2. If a needed knob has no flag, say so — that is a finding, not something to paper
   over.
@@ -131,13 +156,27 @@ Bullet list of selected experiments and one line on anything deliberately exclud
 
 ## Experiment 1: <name, e.g. "Main result — CIFAR-10 classification (paper Table 1)">
 
-**Command** (run from repo root):
+**Mock-run command** (run from repo root):
 ```bash
-python train.py --dataset cifar10 --lr 3e-4 --batch-size 128 --epochs 2 ...
+python train.py --dataset cifar10 --lr 3e-4 --batch-size 128 --epochs 2 --device gpu ...
 ```
 
 **Mock-run downscaling:** which flags were reduced and their paper-faithful values
-(e.g. `--epochs 2` for the mock run; paper uses 200).
+(e.g. `--epochs 2` for the mock run; paper uses 200). Note the device choice: GPU
+whenever the code supports it, with a stated reason if forced to CPU.
+
+**Full-run command(s)** (reproduces the paper's numbers):
+```bash
+python train.py --dataset cifar10 --lr 3e-4 --batch-size 128 --epochs 200 --device gpu ...
+```
+If the figure/table needs a sweep, give the command as a template with `<T>`/`<LAMBDA>`-style
+slots plus a table of valid tuples, one row per run (never a free cross product of choices);
+enumerate every exact command instead when there are ~8 runs or fewer:
+
+| run | `<DATASET>` | `<T>` | `<LAMBDA>` |
+|-----|-------------|-------|------------|
+| 1   | syn1        | 4     | 0.01       |
+| 2   | syn4        | 5     | 0.005      |
 
 **Hyperparameter justification** (non-obvious choices only — skip flags whose value is
 both the code default and uncontroversial):
