@@ -1,0 +1,29 @@
+{
+  "skill_name": "environment-setup",
+  "evals": [
+    {
+      "id": 0,
+      "name": "pinned-specs-fresh-setup",
+      "prompt": "Stage 1 scoping is done for this repo (.paper-reproduction/experiment-scoping.md). Now do stage 3: set up the environment for it. I want a conda env I can activate plus a file listing the exact package versions you installed, and make sure the python/torch/CUDA story actually works on this machine.",
+      "expected_output": "A conda env named pr-<repo-dirname> that actually exists, built from the repo's pinned requirements.txt (tier-1 precedence — README's looser versions ignored where they conflict), torch build chosen to match the host driver (or CPU-only if no GPU), a pip-freeze lockfile at .paper-reproduction/environment.lock.txt whose pins match the requirements, and a report at .paper-reproduction/environment-setup.md following the template with verification results (imports + cuda check + entry-point import).",
+      "files": ["fixtures/pinned-specs (repo stub: pinned requirements.txt, README with a conflicting loose instruction, small train.py, scoping report)"],
+      "assertions": []
+    },
+    {
+      "id": 1,
+      "name": "infer-from-imports",
+      "prompt": "ok next step of my reproduction pipeline: build the environment for this repo. heads up, the authors shipped no requirements file at all — figure out the right python/package versions from the code itself and make an env + version list. scoping report is at .paper-reproduction/experiment-scoping.md as usual.",
+      "expected_output": "The skill notices there are no tier-1/2/3 specs, infers python and torch version ranges from API/syntax clues in the code, uses the repo's last-commit era to disambiguate, pins other packages from imports into a mutually conflict-free set (verified with a resolver dry-run / pip check, not just latest-before-commit-date), creates the env, verifies imports, and documents per-fact tiers in the Spec sources table of the report.",
+      "files": ["fixtures/infer-from-imports (repo stub: no spec files, python sources with era-specific torch/python API clues, git history with an old commit date, scoping report)"],
+      "assertions": []
+    },
+    {
+      "id": 2,
+      "name": "repair-mode",
+      "prompt": "Stage 4 of my pipeline hit an environment error while running the experiment command in conda env pr-repair-fixture. Here's the traceback:\n\nTraceback (most recent call last):\n  File \"train.py\", line 3, in <module>\n    import scipy.signal\nModuleNotFoundError: No module named 'scipy'\n\nFix the environment (not the code), then update the lockfile and the environment-setup report so the next run works.",
+      "expected_output": "The skill diagnoses this as an env error, installs scipy into the existing env pr-repair-fixture at a version consistent with the env's numpy/python pins (minimal change — no wholesale reinstall or env rebuild), re-verifies the failing import, re-exports .paper-reproduction/environment.lock.txt so it includes scipy, and appends a dated entry to the Repair log section of .paper-reproduction/environment-setup.md.",
+      "files": ["fixtures/repair-mode (repo stub with prior environment-setup.md + lockfile, and a pre-created conda env pr-repair-fixture missing scipy)"],
+      "assertions": []
+    }
+  ]
+}
