@@ -1,0 +1,49 @@
+{
+  "skill_name": "resource-download",
+  "evals": [
+    {
+      "id": 0,
+      "name": "suwr-nothing-to-download",
+      "prompt": "I'm in my cloned SUWR repo and stage 1 of my reproduction pipeline already produced .paper-reproduction/experiment-scoping.md. Now do stage 2: check that this machine's hardware can actually run the planned experiments, and download/pre-stage whatever datasets or checkpoints the plan says the experiments need. I want an absolute storage path for every asset when you're done.",
+      "expected_output": "A resource-download report at .paper-reproduction/resource-download.md: probed hardware, all 4 experiments FEASIBLE (no checkpoints, small models), keras MNIST (~11 MB) and fashion-MNIST (~30 MB) cache paths verified (pre-seeded or already present) with absolute paths, nothing else downloaded, placeholder-mapping section present (stating no placeholders were used).",
+      "files": ["fixtures/suwr (repo stub with the real SUWR experiment-scoping.md)"],
+      "assertions": [
+        "Report file exists at <repo>/.paper-reproduction/resource-download.md",
+        "All four experiments are marked feasible; no experiment is skipped",
+        "Records absolute paths for the keras MNIST and fashion-MNIST cache files, and those paths exist on disk with plausible sizes (mnist.npz ~11 MB; fashion-mnist gz files ~30 MB total)",
+        "Downloads nothing beyond the two keras datasets: no checkpoint files were fetched into the repo or caches by this run",
+        "Hardware section reports probed GPU model + VRAM, RAM, and free disk",
+        "Placeholder-mapping section is present, explicitly stating the scoping commands used no path placeholders"
+      ]
+    },
+    {
+      "id": 1,
+      "name": "small-hf-checkpoint",
+      "prompt": "ok stage 1 scoping is done (.paper-reproduction/experiment-scoping.md in this repo). can you now fetch everything that plan needs — the pretrained checkpoint and the dataset — after checking it'll actually fit on my gpu? put things somewhere sensible and give me the absolute paths so the next stage can slot them into the commands.",
+      "expected_output": "Feasibility passes (124M params vs 24 GB VRAM, arithmetic shown for the fine-tuning mode), gpt2 PyTorch weights (~548 MB safetensors + config/tokenizer, not the TF/flax/onnx duplicates) downloaded under .paper-reproduction/assets/checkpoints/, the e2e_nlg dataset under .paper-reproduction/assets/datasets/, all recorded paths exist on disk with verified sizes, and a placeholder mapping table resolving <CKPT_DIR>/gpt2 and <DATA_DIR>/e2e to absolute paths.",
+      "files": ["fixtures/small-hf (repo stub with a LoRA-style scoping report needing hf 'gpt2' + 'tuetschek/e2e_nlg')"],
+      "assertions": [
+        "Report file exists at <repo>/.paper-reproduction/resource-download.md",
+        "Feasibility verdict is feasible, with arithmetic that budgets fine-tuning memory (optimizer/gradients), not just raw weight size",
+        "GPT-2 weights actually exist on disk at the recorded checkpoint path, total size >= 400 MB, alongside config and tokenizer files",
+        "Exactly one PyTorch weight format was downloaded — no tf_model.h5/flax_model.msgpack/onnx copies, and not both pytorch_model.bin and model.safetensors",
+        "E2E NLG dataset files actually exist on disk at the recorded dataset path",
+        "Placeholder mapping resolves both <CKPT_DIR>/gpt2 and <DATA_DIR>/e2e to absolute paths, and every path recorded in the report exists on disk"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "infeasible-20b",
+      "prompt": "stage 2 time: the scoping report is at .paper-reproduction/experiment-scoping.md. check the hardware here and download the datasets/checkpoints the experiments need, then give me the absolute path for each asset.",
+      "expected_output": "The skill probes the real GPU (24 GB VRAM), computes that gpt-neox-20b needs ~39 GB fp16 + overhead > 24 GB, marks the only experiment SKIPPED/infeasible with the arithmetic, downloads NO multi-GB weights (and skips the experiment's exclusive LAMBADA dataset too), and still writes .paper-reproduction/resource-download.md explaining why it stopped.",
+      "files": ["fixtures/infeasible-20b (repo stub with a scoping report needing EleutherAI/gpt-neox-20b, ~39 GB fp16)"],
+      "assertions": [
+        "Report file exists at <repo>/.paper-reproduction/resource-download.md even though the run stopped before downloading",
+        "The experiment is marked skipped/infeasible on VRAM grounds, with explicit arithmetic comparing ~39-41 GB fp16 weight memory (plus overhead) to the probed 24 GB",
+        "No gpt-neox-20b weight files were downloaded: no multi-GB files appear in the repo, its assets dir, or the HF cache as a result of this run",
+        "The LAMBADA dataset was not downloaded either, since its only consumer experiment was skipped",
+        "Hardware section reflects the actually probed GPU (24 GB class), not assumed datacenter hardware"
+      ]
+    }
+  ]
+}
