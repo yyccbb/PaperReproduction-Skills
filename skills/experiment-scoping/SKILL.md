@@ -15,7 +15,7 @@ This is stage 1 of a reproduction pipeline. Your output is consumed by machines 
 not only humans:
 
 - **resource-download** (stage 2) reads your dataset/checkpoint list to fetch assets.
-- **code-fix** (stage 4) runs your commands verbatim and fixes errors iteratively.
+- **run-validation** (stage 4) runs your commands verbatim and fixes errors iteratively.
 
 So the plan must be *actionable without you*: every command must be copy-paste runnable from
 the repo root (given the assets exist), and every asset must be named precisely enough to
@@ -103,7 +103,7 @@ final numbers. So:
   say what the full-run value would be.
 - Run on GPU whenever possible: if the code has a device flag or CUDA path, the mock must
   exercise it (`--device gpu`, `--cuda`, etc.), because CUDA/torch compatibility failures
-  are precisely what the environment-setup and code-fix stages need to surface early — a
+  are precisely what the environment-setup and run-validation stages need to surface early — a
   CPU mock that passes can still hide a broken GPU path that only explodes during the real
   run. Fall back to CPU only when the code is genuinely CPU-only or has no GPU path, and
   say so in Notes/risks.
@@ -133,7 +133,7 @@ passes. Present them as:
   README flag looks like it would cause an immediate parsing error, grep the codebase for
   where it is consumed before deciding:
   - Used somewhere deeper in the code → keep the flag, and record the parsing error under
-    Notes/risks; stage 4 (code-fix) will repair the parser, and dropping the flag now would
+    Notes/risks; stage 4 (run-validation) will repair the parser, and dropping the flag now would
     silently change the experiment instead.
   - Confirmed unused anywhere → only then remove it, and note the removal and the evidence.
 - Use paths as placeholders in an obvious, consistent form (`<DATA_DIR>/cifar10`,
@@ -191,7 +191,7 @@ both the code default and uncontroversial):
 - (or "none — trains from scratch")
 
 **Notes / risks:** missing flags, README flags retained despite expected parsing errors
-(with where in the code they are consumed, for the code-fix stage), removed-as-unused
+(with where in the code they are consumed, for the run-validation stage), removed-as-unused
 flags with evidence, paper-code discrepancies, anything ambiguous.
 `````
 

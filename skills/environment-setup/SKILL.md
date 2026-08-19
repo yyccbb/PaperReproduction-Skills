@@ -19,7 +19,7 @@ pipeline. When the pipeline context exists, use it:
   what must be importable and whether CUDA must work. If the report is absent, derive
   the same facts from the repo itself (see Inputs); its absence is never a reason to
   stop.
-- **code-fix** (stage 4) consumes *your* output: it activates the env you name and runs
+- **run-validation** (stage 4) consumes *your* output: it activates the env you name and runs
   the planned commands verbatim. When a run fails with an environment error, it invokes
   this skill again in **repair mode** with the error text.
 
