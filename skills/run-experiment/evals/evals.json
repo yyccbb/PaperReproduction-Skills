@@ -1,0 +1,29 @@
+{
+  "skill_name": "run-experiment",
+  "evals": [
+    {
+      "id": 0,
+      "name": "sweep-scale-up-with-fix-delta",
+      "prompt": "Stages 1-4 of the reproduction pipeline are done for this repo — the reports are under .paper-reproduction/ and the code is validated on the run-validation branch. Now do stage 5: launch the full-length reproduction runs for the paper's sweep and record everything in a structured way. The run-visible helper skill is at /home/yyccbb/projects/PaperReproduction-Skills/skills/run-visible.",
+      "expected_output": "The skill derives 3 full commands from stage 4's validated command (which uses --lambda) scaled up to --epochs 40 and expanded over stage 1's tuple table — applying the fix-log delta so every row uses --lambda, never the scoping template's drifted --reg-weight. It writes the manifest before executing, runs the 3 runs sequentially via spawn_visible.sh inside conda env pr-sweep-scale-up with deterministic RUN_IDs (exp1-run1..3-<slug>), judges each by evidence (epoch 40/40, results.json + ckpt.pt), writes run.json per run, kills the detached tmux sessions after harvesting exit codes, and saves .paper-reproduction/run-experiment.md with the required sections. No git commits, no code edits.",
+      "files": ["fixtures/sweep-scale-up"],
+      "assertions": []
+    },
+    {
+      "id": 1,
+      "name": "honor-verdicts-record-failure",
+      "prompt": "time for the full runs (stage 5) on this repo. heads up — stage 4 couldn't validate one of the two experiments, and it flagged a memory risk for one of the full-length runs. handle all that however the pipeline is supposed to. the run-visible skill lives at /home/yyccbb/projects/PaperReproduction-Skills/skills/run-visible",
+      "expected_output": "Experiment 2 (stage-4 verdict FAILED) is never executed and appears as NOT RUN with the upstream reason. Experiment 1's small run completes with evidence (epoch 30/30, artifacts). The large run dies with a MemoryError around epoch 11 — the skill records it FAILED with a diagnosis noting stage 4's OOM prediction, does NOT retry with shrunken epochs/size, does not edit code or env, and continues/finishes the report. Working tree stays clean with no new commits; the Risks section annotates stage 4's notes with what actually happened.",
+      "files": ["fixtures/verdicts-failure"],
+      "assertions": []
+    },
+    {
+      "id": 2,
+      "name": "resume-partial-sweep",
+      "prompt": "My last session died partway through stage 5 for this repo — I think the seed-0 full run finished but the other two never launched. Pick up the full reproduction runs from where they left off and give me the final record. (run-visible helper skill: /home/yyccbb/projects/PaperReproduction-Skills/skills/run-visible)",
+      "expected_output": "The skill scans .paper-reproduction/runs/, finds exp1-run1-seed0 complete with evidence (exit 0, epoch 25/25 in the log, artifacts), marks it COMPLETE from the prior session WITHOUT re-executing it (the prior console.log with its sentinel first line survives untouched), then runs seeds 1 and 2 fresh and sequentially to completion. run-experiment.md accounts for all three runs, distinguishing resumed from freshly-run.",
+      "files": ["fixtures/resume-sweep"],
+      "assertions": []
+    }
+  ]
+}
