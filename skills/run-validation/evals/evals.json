@@ -1,0 +1,29 @@
+{
+  "skill_name": "run-validation",
+  "evals": [
+    {
+      "id": 0,
+      "name": "code-fix-loop-with-git",
+      "prompt": "Stages 1-3 of my reproduction pipeline are done for this repo (reports under .paper-reproduction/, conda env exists). Now do stage 4: run the mock commands from the scoping report and fix whatever breaks until they pass, tracking every fix in git.",
+      "expected_output": "The skill creates a run-validation git branch off the recorded baseline, fixes the pre-run obvious error (a repo-internal import typo) as its own commit, substitutes the placeholder paths from resource-download.md into the mock command, runs it in the pr-<name> env, hits the planted runtime code bug (an argparse flag the scoping report's Notes/risks flagged as consumed deeper in the code), fixes it as a separate commit, reruns to a genuine pass (exit 0 plus logged training steps), and writes .paper-reproduction/run-validation.md with the status table, validated concrete command, and a fix log whose commit hashes exist in git log.",
+      "files": ["fixtures/code-fix-loop (repo stub: tiny CPU-fast train.py with a planted import typo and a missing argparse entry for a flag the mock command uses, plus pre-written experiment-scoping.md / resource-download.md / environment-setup.md and a pre-created conda env)"],
+      "assertions": []
+    },
+    {
+      "id": 1,
+      "name": "env-error-delegation",
+      "prompt": "next step: validate the experiment runs for this repo. everything's staged under .paper-reproduction/ from the earlier stages, env is pr-env-delegation-fixture. run the mock commands and get them passing — keep the fixes in git like we discussed.",
+      "expected_output": "The mock run fails with ModuleNotFoundError for a package the env is missing. The skill classifies it as an environment error and delegates to the environment-setup skill in repair mode (env name + traceback) instead of pip-installing into the env itself; after the repair it reruns to a pass. No code edits are made for the env error, environment.lock.txt is updated (by the delegated repair), the run-validation.md report lists the delegation under Environment repairs, and the env repair does not appear as a code-fix commit.",
+      "files": ["fixtures/env-delegation (repo stub: correct code whose entry script imports a package deliberately absent from the pre-created conda env pr-env-delegation-fixture, plus the three stage reports and lockfile)"],
+      "assertions": []
+    },
+    {
+      "id": 2,
+      "name": "honor-skips-and-stop-rules",
+      "prompt": "Run stage 4 (run-validation) on this repo. Heads up: the scoping report has two experiments but I think resource-download skipped one of them for hardware reasons — handle that however your pipeline is supposed to.",
+      "expected_output": "The experiment marked SKIPPED in resource-download.md's feasibility table is never executed and appears as SKIPPED in the report with stage 2's reason (no attempt to download its checkpoint or shrink it to fit). The feasible experiment is validated normally. The report's summary table accounts for both experiments, and no scientifically meaningful hyperparameter of either command was altered.",
+      "files": ["fixtures/honor-skips (repo stub: two-experiment scoping report; resource-download.md marks experiment 2 SKIPPED on VRAM arithmetic; experiment 1 is a tiny runnable script; pre-created conda env)"],
+      "assertions": []
+    }
+  ]
+}
