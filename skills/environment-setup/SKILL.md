@@ -157,7 +157,24 @@ Run, inside the env:
   Import-time `ModuleNotFoundError`s are yours to fix now, in a repair-style loop,
   before writing the report.
 
-### 5. Export the lockfile
+### 5. Install the analysis-stage packages
+
+After all of the repo's own packages are pinned and verified, install the packages the
+final result-analysis stage's scripts need: `matplotlib`, `pandas`, `numpy`, `pymupdf`,
+`tbparse`.
+
+- These come **last** so they can never influence the version resolution of the repo's
+  own dependencies, and they must not disturb it either: if one of them (or a dependency,
+  e.g. numpy via pandas) is already installed at a pinned version, keep that version —
+  add explicit pins for the already-installed ones to the install command so the resolver
+  respects them, rather than letting it upgrade.
+- If a version conflict makes one of them uninstallable alongside the repo's pins,
+  install the newest version that fits; if nothing fits, skip that package and record it
+  in Notes — the repo's environment always wins over analysis conveniences.
+- Verify with a quick import of each (`matplotlib`, `pandas`, `numpy`, `fitz`,
+  `tbparse`), and re-run `pip check`.
+
+### 6. Export the lockfile
 
 Write `.paper-reproduction/environment.lock.txt`:
 
@@ -230,6 +247,8 @@ Every place the env differs from what the specs say, with why — or "none".
 - torch.cuda.is_available(): <True/False/n.a., and whether that meets the expected GPU use>
 - Entry-point imports: <which modules were imported (from the scoping commands, or the
   README/run scripts on a standalone run), results>
+- Analysis packages: <matplotlib / pandas / numpy / pymupdf / tbparse versions installed
+  for the result-analysis stage, and any skipped due to conflicts>
 
 ## Notes
 Anything whoever runs the code next should know: packages installed --no-deps and why,
