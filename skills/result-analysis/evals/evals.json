@@ -1,0 +1,59 @@
+{
+  "skill_name": "result-analysis",
+  "evals": [
+    {
+      "id": 0,
+      "name": "table-comparison",
+      "prompt": "Stages 1-5 of the reproduction pipeline are done for this repo \u2014 the reports are under .paper-reproduction/ and all full runs completed. Now do the final stage: analyze the results against the paper and write the comparison report.",
+      "expected_output": "The skill finds the paper PDF, locates Table 1 (accuracy on syn1/syn2/syn4, in percent), writes a rerunnable extraction script under .paper-reproduction/analysis/scripts/ that reads the three results.json artifacts (normalizing fraction -> percent) into analysis/data/, and produces .paper-reproduction/result-analysis.md containing a paired-column paper-vs-ours table with deltas (91.2/90.5, 89.5/89.9, 87.4/86.1), factual observations, and the required sections (Summary, Not analyzed, Scripts and data index, Environment used, Notes). No verdict language, no code edits, no commits, no package installs.",
+      "files": [
+        "fixtures/table-comparison"
+      ],
+      "assertions": [
+        "The report exists at .paper-reproduction/result-analysis.md inside the output repo",
+        "The report pairs the paper's Table 1 values (91.2, 89.5, 87.4 %) with the reproduced accuracies normalized to the same units (90.5, 89.9, 86.1 %) for syn1/syn2/syn4, with deltas",
+        "A rerunnable extraction script exists under .paper-reproduction/analysis/scripts/ and re-running it regenerates the extracted numbers without error",
+        "Extracted data file(s) (CSV/JSON) exist under .paper-reproduction/analysis/data/ and contain the three per-dataset accuracies read from the results.json artifacts",
+        "The report contains the required sections: Summary, Not analyzed, Scripts and data index, Environment used, Notes",
+        "The report presents the comparison without a reproduction verdict (no REPRODUCED / NOT REPRODUCED / success-failure judgment)",
+        "The codebase is untouched: no new git commits, train.py and README.md unmodified, and no packages were installed into the conda env"
+      ]
+    },
+    {
+      "id": 1,
+      "name": "plot-comparison",
+      "prompt": "runs are all done for this repo. compare what we got against the paper's figure 1 and put together the results analysis",
+      "expected_output": "The skill notices Figure 1 is a plot whose coordinates are never stated numerically, so it (a) parses the four console.logs with a saved script to recover each run's best-validation (avg_feats, val_mse) point into analysis/data/, (b) regenerates the figure with matplotlib imitating the paper's axes (avg features 0-8, val MSE 0-0.10) saved under analysis/figures/, (c) crops the paper's Figure 1 from the PDF page via pymupdf to a PNG, and (d) embeds both images side by side in result-analysis.md. It does NOT digitize points off the paper figure or overlay invented paper curves, and every reported number traces to the extraction script's output.",
+      "files": [
+        "fixtures/plot-comparison"
+      ],
+      "assertions": [
+        "The report exists at .paper-reproduction/result-analysis.md inside the output repo",
+        "An extraction script under .paper-reproduction/analysis/scripts/ parses the four console.logs and recovers each run's best-validation point matching the logs exactly: lam0.1 (5.70, 0.0388), lam0.2 (4.00, 0.0448), lam0.4 (3.10, 0.0548), lam0.8 (2.30, 0.0698), written to a data file under analysis/data/",
+        "A regenerated tradeoff figure (PNG) exists under .paper-reproduction/analysis/figures/, produced by a saved script that reads the extracted data file (not hardcoded values), with axes imitating the paper's (avg features used vs validation MSE)",
+        "The paper's Figure 1 was cropped from the PDF page into an image under .paper-reproduction/analysis/figures/, and the report embeds the paper crop and the regenerated figure side by side",
+        "No digitized paper data: the report attributes no numeric point coordinates to the paper's Figure 1 curve (the paper states none)",
+        "The report contains the required sections: Summary, Not analyzed, Scripts and data index, Environment used, Notes",
+        "The codebase is untouched: no new git commits, train.py and README.md unmodified, and no packages were installed into the conda env"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "partial-results",
+      "prompt": "Finish the pipeline for this repo: stage 6, result analysis. Heads up \u2014 one of the two experiments never ran; handle that however the pipeline is supposed to.",
+      "expected_output": "Experiment 1 (paper Table 2) is analyzed: extraction script reads the two results.json files, and the report shows the paired table (91.0/90.3 small, 93.5/92.8 large) with deltas. Experiment 2 (paper Table 3) appears as NOT ANALYZED with the upstream stage-4 FAILED reason (missing model_zoo) \u2014 no fabricated Table 3 comparison, no attempt to run train_b.py or fix the code. Report has all required sections; no verdicts, no installs, no commits.",
+      "files": [
+        "fixtures/partial-results"
+      ],
+      "assertions": [
+        "The report exists at .paper-reproduction/result-analysis.md inside the output repo",
+        "The report pairs the paper's Table 2 values (small 91.0, large 93.5 %) with the reproduced accuracies normalized to percent (90.3, 92.8) with deltas, backed by an extraction script and data file under .paper-reproduction/analysis/",
+        "Experiment 2 (paper Table 3, deep variant) is reported as NOT ANALYZED with the upstream reason (stage 4 FAILED: missing model_zoo), and the paper's 94.1 value is never paired with any reproduced number",
+        "train_b.py was never executed and no attempt was made to fix or work around the missing model_zoo module",
+        "The report contains the required sections: Summary, Not analyzed, Scripts and data index, Environment used, Notes",
+        "The report presents the comparison without a reproduction verdict (no REPRODUCED / NOT REPRODUCED / success-failure judgment)",
+        "The codebase is untouched: no new git commits, train_a.py/train_b.py/README.md unmodified, and no packages were installed into the conda env"
+      ]
+    }
+  ]
+}
