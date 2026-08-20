@@ -110,9 +110,57 @@ Practical fetching guidance:
 - Hugging Face datasets: `hf download <id> --repo-type dataset --local-dir <target>`, or
   the canonical source URL the scoping report gives.
 - Plain URLs: `curl -L` / `wget`, into the assets directory.
-- Gated or authenticated assets you cannot fetch: record the asset as BLOCKED with exactly
-  what the user must do (accept a license, provide a token), and continue with the rest.
+- Assets you cannot fetch on the first attempt (gated, registration-walled, dead link):
+  do **not** silently give up — follow the escalation loop in the next section.
   Never record a path you did not actually create.
+
+### 3b. Hard-to-access assets: escalate to the user, don't give up
+
+Some datasets and checkpoints cannot be fetched by a script: they sit behind a license
+form, a registration page, an email request, or an expiring signed URL. For these, the
+skill's contract is: **exhaust your own options first, then work the problem *with* the
+user across as many turns as it takes. An asset is abandoned only when the user clearly
+says it cannot be obtained.**
+
+**First, try everything you can do alone.** Before involving the user, attempt every
+autonomous route: the canonical source, official mirrors, the same dataset under a
+different name on Hugging Face / Kaggle / academic hosting, download scripts shipped in the
+repo itself, and archived copies of a dead link. Do not ask the user to do something a
+different URL would have solved.
+
+**Then pause and hand the user a concrete task.** When the remaining obstacle requires a
+human (fill a form, accept a license, create an account, request access by email), stop and
+ask — but first finish downloading all *other* assets, so one blocked asset never stalls
+the rest. Batch the blocked assets into one request if there are several. The request must
+be specific enough to act on without research:
+
+- the exact URL of the form/portal and which option or license to choose;
+- what artifact to bring back — a token, an approved account, a download link, or the
+  file itself — and where to paste or put it;
+- if they should download the file themselves: the exact **absolute destination path**
+  (create the parent directory first so it exists when they get there), e.g.
+  "place the archive at `<repo>/.paper-reproduction/assets/datasets/<name>/<file>`".
+
+**Iterate — this is usually multi-turn.** Whatever the user comes back with, take the next
+step yourself and report what happened:
+
+- They provide a token/credentials → retry the authenticated download yourself
+  (`hf auth login --token`, `curl -H "Authorization: ..."`, etc.).
+- They provide a download link → try to fetch it. Signed/browser-session URLs often fail
+  from curl even when they work in a browser; if the fetch fails, say exactly how it failed
+  and fall back to asking them to download it in their browser and drop the file at the
+  absolute path you prepared.
+- They placed a file manually → verify it exactly as in step 4 (exists, plausible size,
+  archive opens) before accepting it, and record it as "provided manually by user".
+- Something still fails → diagnose, propose the next-cheapest step for them, and ask again.
+  Each round should shrink the problem; never re-ask for something they already gave you.
+
+**Stop only on the user's clear signal.** Mark an asset BLOCKED only when the user states
+it is impossible or not worth obtaining ("we can't get access", "skip that dataset"). Then
+record the verdict, the escalation history in brief, and continue with the experiments that
+don't need it — per-experiment feasibility from step 2 applies as usual. Ambiguous or
+absent answers are not a signal to give up; ask again or leave the question pending in your
+final message, with everything else in the report already complete.
 
 ### 4. Verify every download
 
@@ -147,7 +195,7 @@ Show the arithmetic for every SKIPPED verdict.
 ### <asset name, as stage 1 named it>
 - **Path:** /absolute/path/to/asset
 - **Size on disk:** <verified size>
-- **Obtained:** downloaded from <source> / pre-seeded cache from <URL> / already present / BLOCKED: <what the user must do>
+- **Obtained:** downloaded from <source> / pre-seeded cache from <URL> / already present / provided manually by user (verified) / BLOCKED: user confirmed unobtainable — <what was tried, in one line>
 - **Used by:** Exp 1, Exp 3
 
 ## Placeholder mapping
@@ -158,7 +206,8 @@ Show the arithmetic for every SKIPPED verdict.
 
 ## Notes
 Anything downstream stages should know: skipped duplicate weight formats, cache paths that
-depend on $HOME, assets that auto-download at runtime anyway, blocked assets.
+depend on $HOME, assets that auto-download at runtime anyway, blocked assets, and any
+asset still pending user action (with exactly what the user was asked to do).
 `````
 
 If the scoping report used no placeholders (e.g. all data is generated in-process or
@@ -175,3 +224,6 @@ downstream stages look for the section, not for your prose.
   casually here would conflict with its lockfile-first policy).
 - Download only what the scoping report names. If you believe the report missed an asset,
   record that under Notes — do not unilaterally expand the plan.
+- Pausing mid-stage to ask the user for manual access steps (section 3b) is normal
+  operation, not a failure. BLOCKED is reserved for assets the user has explicitly given
+  up on — never for assets you simply have not managed to fetch yet.
