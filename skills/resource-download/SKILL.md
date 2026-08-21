@@ -41,6 +41,10 @@ downstream stage in a way that is expensive to debug later.
 
   Record in the output what was probed vs. user-provided, so a later reader knows which
   machine the feasibility verdicts apply to.
+- **Known-assets report (optional).** The invoker may point you at another repo's
+  `resource-download.md` — typically the main paper repo's, when this invocation prepares
+  a baseline repo for the baseline-reproduction stage — whose already-downloaded assets
+  may overlap with this plan's. Its absence changes nothing.
 
 ## Process
 
@@ -81,6 +85,15 @@ Experiments that need no checkpoint (training small models from scratch) are fea
 default unless the report flags something else (e.g. a dataset larger than free disk).
 
 ### 3. Download, with the hybrid storage policy
+
+**Reuse before fetching.** When a known-assets report was provided: for each asset in this
+plan, check whether that report already records the *same* asset — same canonical dataset
+or checkpoint, not merely a similar name (CIFAR-10 vs CIFAR-100 is not a match). If it
+does and the recorded path still passes the step-4 checks, record that existing absolute
+path with "Obtained: reused from <report path> (verified)" and do not download a second
+copy — shared benchmarks are the common case across a paper and its baselines, and this
+reuse is the point of the input. Framework caches (`~/.keras`, the HF cache) are per-user
+and shared anyway; the existing "already present" handling covers them.
 
 Where a file goes is determined by who will look for it:
 

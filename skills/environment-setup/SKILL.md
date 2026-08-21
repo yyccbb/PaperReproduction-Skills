@@ -1,6 +1,6 @@
 ---
 name: environment-setup
-description: Set up or repair the Python environment for a research/paper codebase, run from inside the cloned repo. Works standalone on any repo, and also serves as stage 3 of a paper-reproduction pipeline (after experiment-scoping). Use whenever the task is to create the conda/Python environment a repo needs, resolve and pin package versions, work out Python/CUDA/torch compatibility, or repair a broken environment given an install, import, or version-conflict error (including errors fed back from a later run-and-fix stage). Do not use for scoping experiments from the paper, downloading datasets/checkpoints, or fixing the repo's own code.
+description: Set up or repair the Python environment for a research/paper codebase, run from inside the cloned repo. Works standalone on any repo, and also serves as stage 3 of a paper-reproduction pipeline. Use whenever the task is to create the conda/Python environment a repo needs, resolve and pin package versions, work out Python/CUDA/torch compatibility, or repair a broken environment given an install, import, or version-conflict error (including errors fed back from a later run-and-fix stage). Do not use for scoping experiments from the paper, downloading datasets/checkpoints, or fixing the repo's own code.
 ---
 
 # environment-setup
@@ -28,13 +28,17 @@ exact lockfile path, and honest verification results. An env that "should work" 
 never import-tested wastes a full debug cycle later on a problem you could have caught
 in seconds here.
 
-## Two modes
+## Three modes
 
 - **Fresh setup** (the default): no env exists yet for this repo — build one.
 - **Repair**: you are given an existing env plus an error (typically by stage 4, or by a
   user pasting a traceback). Fix the env in place with the smallest change that resolves
   the error. Repair reuses the same version-precedence rules as fresh setup; it is
   described after the main process below.
+- **Fresh setup with a candidate env**: the invoker names an existing env to try before
+  building one (the baseline-reproduction stage passes the main repo's
+  `pr-<main-repo-dirname>` when setting up a baseline repo). Reuse is all-or-nothing —
+  see "Candidate-env check" below.
 
 ## Inputs
 
@@ -49,7 +53,31 @@ in seconds here.
   standalone run without a scoping report.
 - **Repair** needs the env name and the error text; the scoping report and a previous
   `environment-setup.md` are used when present but their absence doesn't block a repair.
+- A **candidate env** name may be supplied by the invoker (see "Candidate-env check");
+  absent one, fresh setup proceeds directly.
 - The paper PDF (if present in the repo) is a legitimate version source — see tier 3.
+
+## Candidate-env check
+
+When the invoker names a candidate env, decide reuse before doing any creation work:
+
+1. Inventory this repo's requirements exactly as in step 1 (tier precedence applies),
+   then compare against what the candidate actually has
+   (`conda run -n <candidate> pip freeze`).
+2. Run the step-4 verification *inside the candidate*: import the major packages this
+   repo needs at the versions found, import this repo's entry-point modules, check
+   `torch.cuda.is_available()` as usual.
+3. **Reuse only on a clean pass with zero installs.** The candidate belongs to another
+   repo — installing, upgrading, or removing anything in it could silently break that
+   repo's validated runs. Any missing package, any conflict with a tier-1 pin of this
+   repo, or any failed import means: leave the candidate untouched and fall through to a
+   normal fresh setup (`pr-<this-repo-dirname>`).
+4. On reuse: skip creation and the lockfile export (the owning repo's lockfile stays the
+   authoritative record); write this repo's report naming the candidate env, recording
+   the verification results, and stating plainly that the env is **reused — do not
+   modify**. If a later repair invocation targets a reused env, the reuse bet has failed:
+   never modify the candidate — build this repo its own env instead (fresh setup), then
+   update the report.
 
 ## Process (fresh setup)
 

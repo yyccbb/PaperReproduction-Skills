@@ -42,8 +42,10 @@ debugging session.
 - `.paper-reproduction/run-validation.md` and `.paper-reproduction/experiment-scoping.md`
   are **required**. If either is absent, say so and stop — deriving full commands without
   the validated baseline would silently skip the pipeline's safety net.
-- The conda env `pr-<repo-dirname>` must exist (`conda env list`); if not, stop and point
-  at stage 3.
+- The conda env named in `.paper-reproduction/environment-setup.md` — `pr-<repo-dirname>`
+  by default, possibly a reused env in a baseline repo — must exist (`conda env list`);
+  if not, stop and point at stage 3. Use that name wherever this skill writes
+  `pr-<repo-dirname>`.
 - Only experiments marked **VALIDATED** by stage 4 are yours to run. SKIPPED, FAILED, and
   BLOCKED experiments are recorded in your report with the upstream verdict, never
   resurrected — if the user wants one revived, that goes back through stage 4.

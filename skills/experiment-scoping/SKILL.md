@@ -1,6 +1,6 @@
 ---
 name: experiment-scoping
-description: First stage of a paper-reproduction pipeline, run from inside a cloned paper codebase that has the paper's PDF placed in it. Use whenever the task is to study the paper together with its code and decide which experiments to reproduce. For each experiment, produce a runnable GPU-first mock-run command plus the full reproduction command(s) with hyperparameter flags, justification for non-obvious hyperparameter choices, and the datasets/checkpoints it needs. Do not use for downloading datasets/checkpoints, setting up environments, or executing and debugging runs.
+description: First stage of a paper-reproduction pipeline, run from inside a cloned paper codebase that has the paper's PDF placed in it. Use whenever the task is to study the paper together with its code and decide which experiments to reproduce. For each experiment, produce a runnable GPU-first mock-run command plus the full reproduction command(s) with hyperparameter flags, justification for non-obvious hyperparameter choices, and the datasets/checkpoints it needs. Also runs in scoped mode inside a baseline repo when .paper-reproduction/scope.md is present (placed by the baseline-reproduction stage). Do not use for downloading datasets/checkpoints, setting up environments, or executing and debugging runs.
 ---
 
 # experiment-scoping
@@ -36,6 +36,26 @@ user. So:
 If no PDF is found, or the directory doesn't look like a paper's implementation, say so and
 stop — do not scope from the paper alone or the code alone. The whole value of this stage is
 reconciling the two.
+
+### Scoped mode (baseline repos)
+
+If `.paper-reproduction/scope.md` exists in the repo, this is a **scoped invocation**: the
+baseline-reproduction stage has already decided which datapoints this repo must produce,
+and the scope file carries the target numbers and any hyperparameters the *invoking* paper
+states for this method. In scoped mode:
+
+- Select exactly the experiments/datapoints the scope file lists — step 4's selection
+  heuristics are replaced by the scope. Never add ablations, extra datasets, or this
+  method's own paper's headline experiments; the scope is the compute budget.
+- The scope file's stated hyperparameters take the paper's slot in step 3's precedence
+  (they are the invoking paper's description of how this baseline was run); this repo's
+  own paper, when present, drops one rank and only fills remaining gaps.
+- The repo's own paper PDF is helpful but **optional** here: if none is present, proceed
+  from the scope file and the code, and note its absence — the no-PDF stop rule above
+  applies only to unscoped runs.
+- Everything else — argparse reading, command construction, the output format, the report
+  path — is unchanged. A scoped datapoint with no entry point in this repo is reported
+  honestly as such (the Boundaries rule, unchanged), never papered over.
 
 ## Process
 
@@ -89,6 +109,12 @@ Prefer the smallest set that covers the paper's headline claims: usually every r
 the main results table, plus ablations only if the user asked for full coverage. If the
 paper has many dataset × model combinations, pick one representative combination per claim
 and say why. List what you deliberately left out.
+
+Comparison-method rows are selected only when **this repo** provides their entry point (a
+shared training script with a method flag, an ablation switch). Baseline methods whose
+code lives elsewhere are never scoped here — record them in the report's **Baseline
+coverage** table instead; a later baseline-reproduction stage reproduces them from their
+own repos using that table.
 
 ### 5. Write the commands: one mock run + the full reproduction runs per experiment
 
@@ -151,6 +177,19 @@ ALWAYS use this exact structure (one block per experiment):
 
 ## Experiments selected
 Bullet list of selected experiments and one line on anything deliberately excluded.
+
+## Baseline coverage
+Per selected experiment, the comparison methods appearing in its paper table/figure:
+
+| Experiment | Baseline method | Entry point in this repo? | Code source (only if the paper states one) |
+|---|---|---|---|
+| Exp 1 | L2X | no | github.com/... (paper Appendix F) |
+| Exp 1 | w/o-FS ablation | yes — flag `--no-fs` | this repo |
+
+Baselines without an entry point here are excluded from the experiment set above; the
+baseline-reproduction stage consumes this table. "Code source" is only what the paper
+itself states (citation, appendix URL) — do not search the web for repos in this stage.
+(In scoped mode, replace this section with one line: "scoped invocation — see scope.md".)
 
 ---
 

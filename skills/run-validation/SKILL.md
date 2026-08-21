@@ -40,9 +40,11 @@ can be reverted surgically instead of archaeologically.
 - `.paper-reproduction/resource-download.md` is required whenever the scoping commands
   contain placeholders (`<DATA_DIR>`, `<CKPT_DIR>`, …). If the scoping report needs no
   assets, its absence is fine — note that and proceed.
-- The conda env `pr-<repo-dirname>` must exist (`conda env list`). If it doesn't, stop and
-  point the user at stage 3 — running mock commands in an arbitrary environment produces
-  errors that say nothing about the code.
+- The conda env named in `.paper-reproduction/environment-setup.md` — `pr-<repo-dirname>`
+  by default, but possibly a reused env from another repo (e.g. `pr-<main-repo>` in a
+  baseline repo) — must exist (`conda env list`). If it doesn't, stop and point the user
+  at stage 3 — running mock commands in an arbitrary environment produces errors that say
+  nothing about the code. Use that env name wherever this skill writes `pr-<name>`.
 
 ## Process
 
